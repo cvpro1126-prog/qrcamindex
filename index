@@ -388,6 +388,47 @@
     </div>
 
     <script>
+        /* JEMBATAN API CLOUDFLARE WORKER KE GOOGLE APPS SCRIPT */
+        (function () {
+            function createRunner(successHandler, failureHandler) {
+                return new Proxy({}, {
+                    get: function (target, method) {
+                        if (method === "withSuccessHandler") {
+                            return function (callback) { return createRunner(callback, failureHandler); };
+                        }
+                        if (method === "withFailureHandler") {
+                            return function (callback) { return createRunner(successHandler, callback); };
+                        }
+                        return async function (...args) {
+                            try {
+                                const response = await fetch("/api", {
+                                    method: "POST",
+                                    headers: { "Content-Type": "application/json" },
+                                    body: JSON.stringify({ action: String(method), args: args })
+                                });
+                                const result = await response.json();
+                                if (!response.ok || (result.success === false && result.message && !result.data)) {
+                                    throw new Error(result.message || "API gagal");
+                                }
+                                if (successHandler) {
+                                    successHandler(Object.prototype.hasOwnProperty.call(result, "data") ? result.data : result);
+                                }
+                            } catch (error) {
+                                if (failureHandler) { failureHandler({ message: error.message }); }
+                                else { console.error("API Error:", error); }
+                            }
+                        };
+                    }
+                });
+            }
+            window.google = window.google || {};
+            window.google.script = window.google.script || {};
+            Object.defineProperty(window.google.script, "run", {
+                configurable: true,
+                get: function () { return createRunner(null, null); }
+            });
+        })();
+
         let html5QrCode = null;
         let selectedStatusMode = 'Hadir';
         let memberDataCache = [];
@@ -498,9 +539,7 @@
                             processAttendance(bib);
                         }
                     },
-                    (errorMessage) => {
-                        // Scan error handling (diabaikan agar tidak spam console)
-                    }
+                    (errorMessage) => {}
                 );
             } catch (err) {
                 showToast("Gagal mengaktifkan kamera: " + (err.message || err), "error");
@@ -538,14 +577,10 @@
 
         function processAttendance(qrCode) {
             showToast("Memproses...", "warning");
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler(handleAttendanceResponse)
-                    .withFailureHandler(err => showToast("Gagal Server: " + (err && err.message ? err.message : err), "error"))
-                    .recordAttendance(qrCode, selectedStatusMode, "Scan QR Code");
-            } else {
-                showToast("Simulasi Scan: " + qrCode, "success");
-            }
+            google.script.run
+                .withSuccessHandler(handleAttendanceResponse)
+                .withFailureHandler(err => showToast("Gagal Server: " + (err && err.message ? err.message : err), "error"))
+                .recordAttendance(qrCode, selectedStatusMode, "Scan QR Code");
         }
 
         function handleAttendanceResponse(res) {
@@ -583,17 +618,15 @@
             const tbody = document.getElementById('memberTableBody');
             tbody.innerHTML = `<tr><td colspan="16" class="px-6 py-8 text-center text-slate-400"><i class="fa-solid fa-spinner fa-spin mr-2"></i> Mengambil data peserta...</td></tr>`;
             
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler(members => {
-                        memberDataCache = members;
-                        populateCategoryDropdown(members);
-                        renderMemberTable(members);
-                        populateDropdown(members);
-                    })
-                    .withFailureHandler(err => showToast("Gagal memuat.", "error"))
-                    .getMembers();
-            }
+            google.script.run
+                .withSuccessHandler(members => {
+                    memberDataCache = members;
+                    populateCategoryDropdown(members);
+                    renderMemberTable(members);
+                    populateDropdown(members);
+                })
+                .withFailureHandler(err => showToast("Gagal memuat.", "error"))
+                .getMembers();
         }
 
         function populateCategoryDropdown(members) {
@@ -656,15 +689,13 @@
         }
 
         function loadMemberDropdown() {
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler(members => {
-                        memberDataCache = members;
-                        populateDropdown(members);
-                    })
-                    .withFailureHandler(err => {})
-                    .getMembers();
-            }
+            google.script.run
+                .withSuccessHandler(members => {
+                    memberDataCache = members;
+                    populateDropdown(members);
+                })
+                .withFailureHandler(err => {})
+                .getMembers();
         }
 
         function populateDropdown(members) {
@@ -710,15 +741,13 @@
         }
 
         function loadAttendanceLogs() {
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler(data => {
-                        attendanceLogsCache = data.logs || [];
-                        renderLogsAndStats(data);
-                    })
-                    .withFailureHandler(err => {})
-                    .getAttendanceData();
-            }
+            google.script.run
+                .withSuccessHandler(data => {
+                    attendanceLogsCache = data.logs || [];
+                    renderLogsAndStats(data);
+                })
+                .withFailureHandler(err => {})
+                .getAttendanceData();
         }
 
         function filterReportTable() {
@@ -798,23 +827,21 @@
                 ktm: document.getElementById('inputKtm').value.trim()
             };
             
-            if (typeof google !== 'undefined' && google.script) {
-                google.script.run
-                    .withSuccessHandler(res => {
-                        btn.disabled = false; btn.innerText = "Simpan";
-                        if (res.success) {
-                            showToast(res.message, 'success');
-                            closeAddMemberModal(); fetchMembers();
-                        } else {
-                            showToast(res.message, 'error');
-                        }
-                    })
-                    .withFailureHandler(err => {
-                        btn.disabled = false; btn.innerText = "Simpan";
-                        showToast("Gagal menyimpan ke server.", "error");
-                    })
-                    .addMember(member);
-            }
+            google.script.run
+                .withSuccessHandler(res => {
+                    btn.disabled = false; btn.innerText = "Simpan";
+                    if (res.success) {
+                        showToast(res.message, 'success');
+                        closeAddMemberModal(); fetchMembers();
+                    } else {
+                        showToast(res.message, 'error');
+                    }
+                })
+                .withFailureHandler(err => {
+                    btn.disabled = false; btn.innerText = "Simpan";
+                    showToast("Gagal menyimpan ke server.", "error");
+                })
+                .addMember(member);
         }
 
         window.onload = function() {
