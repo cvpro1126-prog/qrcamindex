@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KPI VOXRUN REGISTRASION DATABASE</title>
+    <title>KPI VOXRUN 2026</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
@@ -129,7 +129,7 @@
                 </div>
 
                 <div class="md:col-span-5 bg-white p-6 rounded-2xl border border-slate-200 shadow-sm flex flex-col">
-                    <h2 class="text-lg font-bold text-slate-800 mb-1">History Registrasi Event</h2>
+                    <h2 class="text-lg font-bold text-slate-800 mb-1">Riwayat Registrasi Event</h2>
                     <p class="text-xs text-slate-500 mb-4">Daftar kehadiran tersimpan dalam sesi ini</p>
                     
                     <div id="latestScanCard" class="hidden mb-4 p-4 rounded-2xl bg-indigo-50 border border-indigo-200">
